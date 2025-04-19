@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>View Tracking Data</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 min-h-screen p-4">
+  <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+    <h1 class="text-2xl font-semibold mb-6 text-center">View Tracking Data</h1>
+    <form id="fetchDataForm" class="mb-6 flex space-x-2">
+      <input
+        type="text"
+        id="trackingIdInput"
+        placeholder="Enter Tracking ID"
+        class="flex-grow border border-gray-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+      <button
+        type="submit"
+        class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
+      >
+        Fetch Data
+      </button>
+    </form>
+    <div id="trackingData" class="overflow-x-auto"></div>
+    <div class="mt-6 text-center">
+      <a href="index.html" class="text-blue-600 hover:underline">Create Tracking Link</a>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('fetchDataForm');
+    const trackingIdInput = document.getElementById('trackingIdInput');
+    const trackingDataDiv = document.getElementById('trackingData');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = trackingIdInput.value.trim();
+      if (!id) {
+        trackingDataDiv.textContent = 'Please enter a tracking ID.';
+        return;
+      }
+      trackingDataDiv.textContent = 'Loading...';
+
+      try {
+        const response = await fetch('/api/tracking-data/' + id);
+        if (!response.ok) {
+          trackingDataDiv.textContent = 'Tracking link not found.';
+          return;
+        }
+        const data = await response.json();
+        if (!data.visits || data.visits.length === 0) {
+          trackingDataDiv.textContent = 'No visits recorded yet.';
+          return;
+        }
+
+        let html = '<table class="min-w-full border border-gray-300">';
+        html += '<thead><tr class="bg-gray-200">';
+        html += '<th class="border border-gray-300 px-4 py-2">Timestamp</th>';
+        html += '<th class="border border-gray-300 px-4 py-2">IP Address</th>';
+        html += '<th class="border border-gray-300 px-4 py-2">City</th>';
+        html += '<th class="border border-gray-300 px-4 py-2">Region</th>';
+        html += '<th class="border border-gray-300 px-4 py-2">Country</th>';
+        html += '<th class="border border-gray-300 px-4 py-2">Latitude</th>';
+        html += '<th class="border border-gray-300 px-4 py-2">Longitude</th>';
+        html += '</tr></thead><tbody>';
+
+        data.visits.forEach(visit => {
+          html += '<tr>';
+          html += '<td class="border border-gray-300 px-4 py-2">' + new Date(visit.timestamp).toLocaleString() + '</td>';
+          html += '<td class="border border-gray-300 px-4 py-2">' + visit.ip + '</td>';
+          if (visit.location) {
+            html += '<td class="border border-gray-300 px-4 py-2">' + (visit.location.city || '') + '</td>';
+            html += '<td class="border border-gray-300 px-4 py-2">' + (visit.location.region || '') + '</td>';
+            html += '<td class="border border-gray-300 px-4 py-2">' + (visit.location.country || '') + '</td>';
+            html += '<td class="border border-gray-300 px-4 py-2">' + (visit.location.latitude || '') + '</td>';
+            html += '<td class="border border-gray-300 px-4 py-2">' + (visit.location.longitude || '') + '</td>';
+          } else {
+            html += '<td class="border border-gray-300 px-4 py-2" colspan="5">Location data not available</td>';
+          }
+          html += '</tr>';
+        });
+
+        html += '</tbody></table>';
+        trackingDataDiv.innerHTML = html;
+      } catch (error) {
+        trackingDataDiv.textContent = 'Error fetching tracking data.';
+      }
+    });
+  </script>
+</body>
+</html>
